@@ -45,7 +45,8 @@ trainloader = torch.utils.data.DataLoader(trainset, batch_size=128, shuffle=True
 
 testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_test)
 testloader = torch.utils.data.DataLoader(testset, batch_size=100, shuffle=False, num_workers=1)
-# todo
+
+# JODIE: load the test images without transform 
 testimages = torchvision.datasets.CIFAR10(root='./data', train=False, download=True)
 #testimagesloader = torch.utils.data.DataLoader(testimages, batch_size=100, shuffle=False, num_workers=1)
 
@@ -143,6 +144,7 @@ def test(epoch):
         torch.save(state, './checkpoint/ckpt.pth')
         best_acc = acc
 
+# JODIE: run the modified forward pass in model
 import numpy as np
 def extract_features_imgs():
     global best_acc
@@ -153,12 +155,14 @@ def extract_features_imgs():
     with torch.no_grad():
         for batch_idx, (inputs, targets) in enumerate(testloader):
             inputs, targets = inputs.to(device), targets.to(device)
+
+#JODIE: CALL THE extract_features() from densenet121()
             outputs = net.extract_features(inputs)
             for i, img_features in enumerate(outputs):
-                np.save(f'{batch_idx * 100 + i}_features.npy',img_features.cpu().numpy())
+                np.save(f'./output/{batch_idx * 100 + i}_features.npy',img_features.cpu().numpy())
 
         for i, (img_features,img_labels) in enumerate(testimages):
-            img_features.save(f'{i}_images_{img_labels}.jpg', "JPEG")
+            img_features.save(f'./output/{i}_images_{img_labels}.jpg', "JPEG")
 
 
 for epoch in range(start_epoch, start_epoch+1):
