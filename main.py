@@ -7,13 +7,15 @@ import torch.backends.cudnn as cudnn
 
 import torchvision
 import torchvision.transforms as transforms
-
+import numpy as np
 import os
 import argparse
-
+import matplotlib.pyplot as plt
 from models import *
 from utils import progress_bar
 
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
 parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
@@ -42,17 +44,22 @@ trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=128, shuffle=True, num_workers=2)
 
 testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_test)
-testloader = torch.utils.data.DataLoader(testset, batch_size=100, shuffle=False, num_workers=2)
+testloader = torch.utils.data.DataLoader(testset, batch_size=100, shuffle=False, num_workers=1)
+# todo
+testimages = torchvision.datasets.CIFAR10(root='./data', train=False, download=True)
+#testimagesloader = torch.utils.data.DataLoader(testimages, batch_size=100, shuffle=False, num_workers=1)
+
+# test code
 
 classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
 # Model
 print('==> Building model..')
 # net = VGG('VGG19')
-# net = ResNet18()
+#net = ResNet18()
 # net = PreActResNet18()
 # net = GoogLeNet()
-# net = DenseNet121()
+net = DenseNet121()
 # net = ResNeXt29_2x64d()
 # net = MobileNet()
 # net = MobileNetV2()
@@ -60,11 +67,11 @@ print('==> Building model..')
 # net = ShuffleNetG2()
 # net = SENet18()
 # net = ShuffleNetV2(1)
-net = EfficientNetB0()
+#net = EfficientNetB0()
 net = net.to(device)
-if device == 'cuda':
-    net = torch.nn.DataParallel(net)
-    cudnn.benchmark = True
+#if device == 'cuda':
+#    net = torch.nn.DataParallel(net)
+#    cudnn.benchmark = True
 
 if args.resume:
     # Load checkpoint.
@@ -92,7 +99,6 @@ def train(epoch):
         loss = criterion(outputs, targets)
         loss.backward()
         optimizer.step()
-
         train_loss += loss.item()
         _, predicted = outputs.max(1)
         total += targets.size(0)
@@ -100,6 +106,7 @@ def train(epoch):
 
         progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
             % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
+
 
 def test(epoch):
     global best_acc
@@ -121,7 +128,8 @@ def test(epoch):
             progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                 % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
-    # Save checkpoint.
+
+    #Save checkpoint.
     acc = 100.*correct/total
     if acc > best_acc:
         print('Saving..')
@@ -135,7 +143,25 @@ def test(epoch):
         torch.save(state, './checkpoint/ckpt.pth')
         best_acc = acc
 
+import numpy as np
+def extract_features_imgs():
+    global best_acc
+    net.eval()
+    test_loss = 0
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for batch_idx, (inputs, targets) in enumerate(testloader):
+            inputs, targets = inputs.to(device), targets.to(device)
+            outputs = net.extract_features(inputs)
+            for i, img_features in enumerate(outputs):
+                np.save(f'{batch_idx * 100 + i}_features.npy',img_features.cpu().numpy())
 
-for epoch in range(start_epoch, start_epoch+200):
+        for i, (img_features,img_labels) in enumerate(testimages):
+            img_features.save(f'{i}_images_{img_labels}.jpg', "JPEG")
+
+
+for epoch in range(start_epoch, start_epoch+1):
     train(epoch)
-    test(epoch)
+    #test(epoch)
+    extract_features_imgs()
