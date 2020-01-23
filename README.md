@@ -1,6 +1,6 @@
 # Train CIFAR10 with PyTorch
 
-I'm playing with [PyTorch](http://pytorch.org/) on the CIFAR10 dataset.
+I'm playing with [PyTorch](http://pytorch.org/) on the CIFAR10 dataset. The forked repo can be used to extracted the learned feature vectors from CIFAR 10 dataset. Original repo can be found here: [link](https://github.com/kuangliu/pytorch-cifar).
 
 ## Prerequisites
 - Python 3.6+
